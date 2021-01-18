@@ -124,9 +124,9 @@ void Arkanoid::update(float dt)
     for(auto& brick : m_bricks)
         checkCollision(brick);
 
-    // std::remove_if moves all the elements that satisfy a certain condition (bricks that are destroyed in this case) to the
-    // container's back part, and returns an iterator that points to the first destroyed brick that appears from left to right.
-    // Now we can properly erase the adjacent destroyed bricks starting at the returned iterator up until the end.
+    // std::remove_if moves the elements in the given range in such a way that the elements that aren't to
+    // be removed appear at the vector's front, and returns an iterator past the last non removed element. 
+    // Now we can properly erase the adjacent dummies, starting at the returned iterator up to the end.
     m_bricks.erase(std::remove_if(m_bricks.begin(), m_bricks.end(),
                                   [](const auto& brick){return brick.isDestroyed;}),
                    m_bricks.end());
