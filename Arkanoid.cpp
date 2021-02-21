@@ -1,22 +1,23 @@
 #include "Arkanoid.h"
 #include "GameEntities.h"
 #include <iostream>
+#include <thread>
 
 #include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Window/Event.hpp>
+#include <SFML/System/Clock.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/Text.hpp>
-#include <SFML/System/Clock.hpp>
-#include <SFML/Window/Event.hpp>
 
 
 Arkanoid::Arkanoid()
 {
-    auto VideoMode = sf::VideoMode::getDesktopMode();
-    screenWidth  = VideoMode.width;
-    screenHeight = VideoMode.height;
+    auto videoMode = sf::VideoMode::getDesktopMode();
+    screenWidth  = videoMode.width;
+    screenHeight = videoMode.height;
 
     m_window = std::make_unique<sf::RenderWindow>();
-    m_window->create(VideoMode, "Arkanoid", sf::Style::Fullscreen);
+    m_window->create(videoMode, "Arkanoid", sf::Style::Fullscreen);
     //m_window->setFramerateLimit(30); // Nice function to test if the game loop behaves well at different FPS
 
     m_ball = std::make_unique<Ball>();
@@ -27,7 +28,8 @@ Arkanoid::Arkanoid()
 
 void Arkanoid::newGame()
 {
-    bGameOver = false;
+    Arkanoid::bGameOver = false;
+    bShouldRestart = false;
 
     m_ball->setPosition(screenWidth / 2.f, screenHeight - 100.f);
     m_ball->velocity = {-1, -1};
@@ -41,33 +43,53 @@ void Arkanoid::newGame()
     gameLoop();
 }
 
+void Arkanoid::handleEvents()
+{
+    sf::Event event;
+    while(m_window->pollEvent(event))
+    {
+        switch(event.type)
+        {
+        case sf::Event::Closed:
+            m_window->close();
+            break;
+
+        case sf::Event::KeyPressed:
+            if(event.key.code == sf::Keyboard::Escape)
+                m_window->close();
+
+            if(Arkanoid::bGameOver)
+                if(event.key.code == sf::Keyboard::Enter)
+                    bShouldRestart = true;
+            break;
+        }
+    }
+}
+
 // Both game loop and draw methods were based on two excellent articles on the topic
 // https://gameprogrammingpatterns.com/game-loop.html
 // https://gafferongames.com/post/fix_your_timestep/
 void Arkanoid::gameLoop()
 {
-    // Fixed time step for updating
+    // Fixed time step for updating the game
     const sf::Time dt = sf::seconds(1.f / 299.f);
 
     sf::Time accumulator;
 
     sf::Clock clock;
+    
+    // Launch a new thread to get the player input
+    std::thread inputThread(&Arkanoid::getInput, this);
+    inputThread.detach();
 
-    while(m_window->isOpen() && !bGameOver)
+    while(m_window->isOpen() && !Arkanoid::bGameOver)
     {
         sf::Time frameTime = clock.restart(); // How much real time passed since the last frame
         accumulator += frameTime;
 
-        sf::Event event;
-        while(m_window->pollEvent(event))
-        {
-            if(event.type == sf::Event::Closed)
-                m_window->close();
-        }
+        handleEvents();
 
-        getInput();
-
-        while(accumulator >= dt && !bGameOver)
+        while(accumulator >= dt && !Arkanoid::bGameOver)
         {
             update(dt.asSeconds());
             accumulator -= dt;
@@ -78,35 +100,36 @@ void Arkanoid::gameLoop()
         draw(accumulator / dt, dt.asSeconds());
     }
 
-    if(bGameOver)
+    if(Arkanoid::bGameOver)
         handleGameOver();
 }
 
+// Runs on a separate thread
 void Arkanoid::getInput()
 {
     using Kb = sf::Keyboard;
 
-    if(Kb::isKeyPressed(Kb::Escape))
-        m_window->close();
+    while(!Arkanoid::bGameOver)
+    {
+        if(Kb::isKeyPressed(Kb::D) && Kb::isKeyPressed(Kb::A))
+        {
+            m_paddle->direction = Paddle::EMD_None;
+            continue;
+        }
 
-    if(Kb::isKeyPressed(Kb::D) && Kb::isKeyPressed(Kb::A))
-    {
-        m_paddle->direction = Paddle::EMD_None;
-        return;
-    }
-
-    if(Kb::isKeyPressed(Kb::D))
-    {
-        m_paddle->direction = Paddle::EMD_Right;
-    }
-    else
-    if(Kb::isKeyPressed(Kb::A))
-    {
-        m_paddle->direction = Paddle::EMD_Left;
-    }
-    else
-    {
-        m_paddle->direction = Paddle::EMD_None;
+        if(Kb::isKeyPressed(Kb::D))
+        {
+            m_paddle->direction = Paddle::EMD_Right;
+        }
+        else
+        if(Kb::isKeyPressed(Kb::A))
+        {
+            m_paddle->direction = Paddle::EMD_Left;
+        }
+        else
+        {
+            m_paddle->direction = Paddle::EMD_None;
+        }
     }
 }
 
@@ -114,7 +137,7 @@ void Arkanoid::update(float dt)
 {
     m_ball->update(dt);
 
-    if(bGameOver) // If the ball update caused the game over in this frame, no need to proceed
+    if(Arkanoid::bGameOver) // If the ball update caused the game over in this frame, no need to proceed
         return;
 
     m_paddle->update(dt);
@@ -148,8 +171,8 @@ void Arkanoid::draw(float nextFramePrediction, float dt) const
     m_window->draw(tempBall);
     m_window->draw(tempPaddle);
 
-    /*m_window->draw(*m_ball);
-    m_window->draw(*m_paddle);*/
+    //m_window->draw(*m_ball);
+    //m_window->draw(*m_paddle);
 
     for(const auto& brick : m_bricks)
         m_window->draw(brick);
@@ -173,28 +196,9 @@ void Arkanoid::handleGameOver()
     text.setFillColor(sf::Color::White);
     text.setPosition({20, 10});
 
-    bool bShouldRestart = false;
-
     while(m_window->isOpen() && !bShouldRestart)
     {
-        sf::Event event;
-        while(m_window->pollEvent(event))
-        {
-            switch(event.type)
-            {
-            case sf::Event::Closed:
-                m_window->close();
-                break;
-
-            case sf::Event::KeyPressed:
-                if(event.key.code == sf::Keyboard::Escape)
-                    m_window->close();
-                else
-                if(event.key.code == sf::Keyboard::Enter)
-                    bShouldRestart = true;
-                break;
-            }
-        }
+        handleEvents();
 
         m_window->clear();
         m_window->draw(text);
