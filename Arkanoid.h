@@ -34,6 +34,7 @@ private:
                 // .cpp file where the actual types are complete.
 
     void newGame();
+    void handleEvents();
     void gameLoop();
     void getInput();
     void update(float dt);
@@ -54,6 +55,7 @@ private:
              brickCountY = 5;
 
     static inline bool bGameOver = false;
+    bool bShouldRestart = false;
 
 public:
 
