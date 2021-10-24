@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include "Utils.h"
 //#include <iostream>
 
 namespace sf
@@ -39,7 +40,6 @@ private:
     void getInput();
     void update(float dt);
     void draw(float nextFramePrediction, float dt) const;
-    void handleGameOver();
 
     void checkCollision(); // Ball x Paddle
     void checkCollision(Brick&); // Ball x Brick
@@ -54,13 +54,13 @@ private:
     uint32_t brickCountX = 8,
              brickCountY = 5;
 
-    static inline bool bGameOver = false;
-    bool bShouldRestart = false;
+    bool bIsBallDetached{};
+    bool bShouldRestart{};
+
+    mutable TextHandler textHandler;
 
 public:
 
-     static inline size_t screenWidth{}, screenHeight{};
-
-     friend class Ball; // So that we can set bGameOver to true when the ball hits the bottom
+    static inline uint32_t screenWidth{}, screenHeight{};
 };
 

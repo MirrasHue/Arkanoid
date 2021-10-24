@@ -28,6 +28,8 @@ private:
 
     sf::FloatRect collider{};
     sf::Vector2f  velocity{};
+
+    static inline bool bHitBottom{};
 };
 
 
@@ -44,6 +46,7 @@ public:
 private:
 
     void movePaddle(float dt);
+    void rotateAngleIndicator(float dt);
 
     float x{}, y{};
 
@@ -51,16 +54,27 @@ private:
                 height = 40.f,
                 speed  = 600.f; // pixels / s
 
+    const float angleIndicatorSpeed = 100.f;
+
     enum EMoveDirection : uint8_t
     {
         EMD_Right,
         EMD_Left,
-        EMD_None
+        EMD_NotMoving
     };
 
-    EMoveDirection direction = EMD_None;
+    enum EIndicatorRotation : uint8_t
+    {
+        EIR_RotateRight,
+        EIR_RotateLeft,
+        EIR_NotRotating
+    };
+
+    EMoveDirection moveDirectionState = EMD_NotMoving;
+    EIndicatorRotation indicatorRotationState = EIR_NotRotating;
 
     sf::FloatRect collider{};
+    sf::RectangleShape angleIndicator; // Indicates the angle that the ball will be launched or reflected
 };
 
 

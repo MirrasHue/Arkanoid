@@ -1,5 +1,5 @@
 #include "GameEntities.h"
-#include "MathUtils.h"
+#include "Utils.h"
 #include "Arkanoid.h"
 
 
@@ -28,7 +28,7 @@ void Ball::update(float dt)
 
     if(y + radius >= Arkanoid::screenHeight) // The ball hit the bottom, game over
     {
-        Arkanoid::bGameOver = true;
+        Ball::bHitBottom = true;
         return;
     }
 
@@ -50,23 +50,49 @@ Paddle::Paddle()
     setSize({width, height});
     setOrigin(width / 2.f, height / 2.f);
     setFillColor(sf::Color::Red);
+
+    angleIndicator.setSize({4.f, 70.f});
+    angleIndicator.setOrigin(2.f, 70.f);
+    angleIndicator.setFillColor(sf::Color::White);
 }
 
 void Paddle::movePaddle(float dt)
 {
-    if(direction == EMD_Right)
+    if(moveDirectionState == EMD_Right)
         move(speed * dt, 0.f);
     else
-    if(direction == EMD_Left)
+    if(moveDirectionState == EMD_Left)
         move(-speed * dt, 0.f);
+}
+
+void Paddle::rotateAngleIndicator(float dt)
+{
+    float rot = angleIndicator.getRotation();
+    rot -= (rot > 270.f ? 360.f : 0.f);
+
+    switch(indicatorRotationState)
+    {
+    case EIR_RotateRight:
+        if(rot < 60.f)
+            angleIndicator.rotate(angleIndicatorSpeed * dt);
+        break;
+
+    case EIR_RotateLeft:
+        if(rot > -60.f)
+            angleIndicator.rotate(-angleIndicatorSpeed * dt);
+        break;
+    }
 }
 
 void Paddle::update(float dt)
 {
     movePaddle(dt);
+    rotateAngleIndicator(dt);
 
     x = getPosition().x;
     y = getPosition().y;
+
+    angleIndicator.setPosition(x, y - height / 2.f);
 
     // Keep the paddle inside the screen
     if(x + width / 2.f > Arkanoid::screenWidth)
