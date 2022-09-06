@@ -1,3 +1,11 @@
+# Folders
+.vscode
+.idea
+build
+cmake_modules
+cmake-build-debug
+cmake-build-release
+
 # Prerequisites
 *.d
 

@@ -1,9 +1,11 @@
 #include "Arkanoid.h"
+#include <SFML/Graphics.hpp>
+#include <box2d/box2d.h>
 
 int main()
 {
     Arkanoid& game = Arkanoid::getInstance();
-    //Arkanoid& game2 = Arkanoid::getInstance(); // References the same instance
-
+    game.newGame();
+    
     return 0;
 }

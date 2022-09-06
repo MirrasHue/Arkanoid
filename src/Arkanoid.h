@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <vector>
+//#include <vector>
 #include "Utils.h"
 //#include <iostream>
 
@@ -28,13 +28,14 @@ public:
     Arkanoid(const Arkanoid&) = delete;
     Arkanoid& operator= (const Arkanoid&) = delete;
 
+    void newGame();
+
 private:
                 // We have to prevent the compiler from generating an
     Arkanoid(); // inlined destructor in order to make unique_ptr work
    ~Arkanoid(); // with forward declarations, so the dtor must be in a
                 // .cpp file where the actual types are complete.
 
-    void newGame();
     void handleEvents();
     void gameLoop();
     void getInput();
@@ -55,7 +56,7 @@ private:
              brickCountY = 5;
 
     bool bIsBallDetached{};
-    bool bShouldRestart{};
+    bool bShouldRestart{true};
 
     mutable TextHandler textHandler;
 

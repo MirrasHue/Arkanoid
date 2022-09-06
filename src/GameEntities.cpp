@@ -51,48 +51,38 @@ Paddle::Paddle()
     setOrigin(width / 2.f, height / 2.f);
     setFillColor(sf::Color::Red);
 
-    angleIndicator.setSize({4.f, 70.f});
-    angleIndicator.setOrigin(2.f, 70.f);
-    angleIndicator.setFillColor(sf::Color::White);
+    aimAssistIndicator.setSize({4.f, 70.f});
+    aimAssistIndicator.setOrigin(2.f, 70.f);
+    aimAssistIndicator.setFillColor(sf::Color::White);
 }
 
 void Paddle::movePaddle(float dt)
 {
-    if(moveDirectionState == EMD_Right)
-        move(speed * dt, 0.f);
-    else
-    if(moveDirectionState == EMD_Left)
-        move(-speed * dt, 0.f);
+    move(velocity * speed * dt);
 }
 
-void Paddle::rotateAngleIndicator(float dt)
+void Paddle::rotateAimAssistIndicator(float dt)
 {
-    float rot = angleIndicator.getRotation();
+    float rot = aimAssistIndicator.getRotation();
     rot -= (rot > 270.f ? 360.f : 0.f);
 
-    switch(indicatorRotationState)
-    {
-    case EIR_RotateRight:
-        if(rot < 60.f)
-            angleIndicator.rotate(angleIndicatorSpeed * dt);
-        break;
-
-    case EIR_RotateLeft:
-        if(rot > -60.f)
-            angleIndicator.rotate(-angleIndicatorSpeed * dt);
-        break;
-    }
+    // 0 = not rotating, 1 = rotating right, -1 = rotating left
+    if(aimRotationState > 0 && rot < 60.f)
+        aimAssistIndicator.rotate(aimAssistIndicatorSpeed * dt);
+    else
+    if(aimRotationState < 0 && rot > -60.f)
+        aimAssistIndicator.rotate(-aimAssistIndicatorSpeed * dt);
 }
 
 void Paddle::update(float dt)
 {
     movePaddle(dt);
-    rotateAngleIndicator(dt);
+    rotateAimAssistIndicator(dt);
 
     x = getPosition().x;
     y = getPosition().y;
 
-    angleIndicator.setPosition(x, y - height / 2.f);
+    aimAssistIndicator.setPosition(x, y - height / 2.f);
 
     // Keep the paddle inside the screen
     if(x + width / 2.f > Arkanoid::screenWidth)

@@ -2,6 +2,7 @@
 #include "GameEntities.h"
 #include <iostream>
 #include <thread>
+#include <numbers>
 
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window/Event.hpp>
@@ -19,17 +20,19 @@ Arkanoid::Arkanoid()
 
     m_ball = std::make_unique<Ball>();
     m_paddle = std::make_unique<Paddle>();
-
-    newGame();
 }
 
 void Arkanoid::newGame()
 {
+    if(!bShouldRestart)
+        return;
+
     Ball::bHitBottom = false;
     bIsBallDetached = false;
     bShouldRestart = false;
 
     m_paddle->setPosition(screenWidth / 2.f, screenHeight - 25.f);
+    m_paddle->aimAssistIndicator.setRotation(0.f);
 
     for(uint32_t row = 0; row < brickCountX; ++row)
         for(uint32_t column = 0; column < brickCountY; ++column)
@@ -59,9 +62,11 @@ void Arkanoid::handleEvents()
 
             if(event.key.code == sf::Keyboard::Space && !bIsBallDetached)
             {
+                namespace constants = std::numbers;
+
                 bIsBallDetached = true;
-                m_ball->velocity.y = -std::sin((m_paddle->angleIndicator.getRotation() + 90.f) * 3.14159265f / 180.f);
-                m_ball->velocity.x = -std::cos((m_paddle->angleIndicator.getRotation() + 90.f) * 3.14159265f / 180.f);
+                m_ball->velocity.y = -std::sin((m_paddle->aimAssistIndicator.getRotation() + 90.f) * constants::pi / 180.f);
+                m_ball->velocity.x = -std::cos((m_paddle->aimAssistIndicator.getRotation() + 90.f) * constants::pi / 180.f);
             }
             break;
         }
@@ -81,8 +86,9 @@ void Arkanoid::gameLoop()
     sf::Clock clock;
 
     // Launch a new thread to get the player input
-    std::thread inputThread(&Arkanoid::getInput, this);
-    inputThread.detach();
+    static std::thread inputThread(&Arkanoid::getInput, this);
+    if(inputThread.joinable())
+        inputThread.detach();
 
     while(m_window->isOpen() && !bShouldRestart)
     {
@@ -102,7 +108,7 @@ void Arkanoid::gameLoop()
         draw(accumulator / dt, dt.asSeconds());
     }
 
-    if(Arkanoid::bShouldRestart)
+    if(bShouldRestart)
         newGame();
 }
 
@@ -111,31 +117,32 @@ void Arkanoid::getInput()
 {
     using Kb = sf::Keyboard;
 
-    while(!Ball::bHitBottom)
+    while(true)
     {
+        if(Ball::bHitBottom) continue;
+
         // Paddle
-        if(Kb::isKeyPressed(Kb::D) && Kb::isKeyPressed(Kb::A))
-            m_paddle->moveDirectionState = Paddle::EMD_NotMoving;
-        else
+        sf::Vector2f vel{0.f, 0.f};
+
         if(Kb::isKeyPressed(Kb::D))
-            m_paddle->moveDirectionState = Paddle::EMD_Right;
+            vel.x = 1.f;
         else
         if(Kb::isKeyPressed(Kb::A))
-            m_paddle->moveDirectionState = Paddle::EMD_Left;
-        else
-            m_paddle->moveDirectionState = Paddle::EMD_NotMoving;
+            vel.x = -1.f;
 
-        // Angle Indicator
-        if(Kb::isKeyPressed(Kb::Left) && Kb::isKeyPressed(Kb::Right))
-            m_paddle->indicatorRotationState = Paddle::EIR_NotRotating;
-        else
+        m_paddle->velocity = vel;
+
+        // Aim Assist Indicator
+        // 0 = not rotating, 1 = rotating right, -1 = rotating left
+        int8_t rotationState = 0;
+
         if(Kb::isKeyPressed(Kb::Right))
-            m_paddle->indicatorRotationState = Paddle::EIR_RotateRight;
+            rotationState = 1;
         else
         if(Kb::isKeyPressed(Kb::Left))
-            m_paddle->indicatorRotationState = Paddle::EIR_RotateLeft;
-        else
-            m_paddle->indicatorRotationState = Paddle::EIR_NotRotating;
+            rotationState = -1;
+
+        m_paddle->aimRotationState = rotationState;
     }
 }
 
@@ -181,11 +188,11 @@ void Arkanoid::draw(float nextFramePrediction, float dt) const
 
         //m_window->draw(tempBall);
         m_window->draw(tempPaddle);
-        m_window->draw(tempPaddle.angleIndicator);*/
+        m_window->draw(tempPaddle.aimAssistIndicator);*/
 
         m_window->draw(*m_ball);
         m_window->draw(*m_paddle);
-        m_window->draw(m_paddle->angleIndicator);
+        m_window->draw(m_paddle->aimAssistIndicator);
 
         for (const auto &brick: m_bricks)
             m_window->draw(brick);
@@ -207,8 +214,8 @@ void Arkanoid::checkCollision()
     // Only reflect the ball in the desired direction if it hits the middle part of the paddle
     if(m_ball->x > m_paddle->x - m_paddle->width / 4.f && m_ball->x < m_paddle->x + m_paddle->width / 4.f)
     {
-        m_ball->velocity.y = -std::sin((m_paddle->angleIndicator.getRotation() + 90.f) * 3.14159265f / 180.f);
-        m_ball->velocity.x = -std::cos((m_paddle->angleIndicator.getRotation() + 90.f) * 3.14159265f / 180.f);
+        m_ball->velocity.y = -std::sin((m_paddle->aimAssistIndicator.getRotation() + 90.f) * 3.14159265f / 180.f);
+        m_ball->velocity.x = -std::cos((m_paddle->aimAssistIndicator.getRotation() + 90.f) * 3.14159265f / 180.f);
     }
     else
     {
