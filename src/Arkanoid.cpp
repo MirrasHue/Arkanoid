@@ -7,6 +7,8 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window/Event.hpp>
 
+namespace constants = std::numbers;
+
 
 Arkanoid::Arkanoid()
 {
@@ -62,8 +64,6 @@ void Arkanoid::handleEvents()
 
             if(event.key.code == sf::Keyboard::Space && !bIsBallDetached)
             {
-                namespace constants = std::numbers;
-
                 bIsBallDetached = true;
                 m_ball->velocity.y = -std::sin((m_paddle->aimAssistIndicator.getRotation() + 90.f) * constants::pi / 180.f);
                 m_ball->velocity.x = -std::cos((m_paddle->aimAssistIndicator.getRotation() + 90.f) * constants::pi / 180.f);
@@ -214,8 +214,8 @@ void Arkanoid::checkCollision()
     // Only reflect the ball in the desired direction if it hits the middle part of the paddle
     if(m_ball->x > m_paddle->x - m_paddle->width / 4.f && m_ball->x < m_paddle->x + m_paddle->width / 4.f)
     {
-        m_ball->velocity.y = -std::sin((m_paddle->aimAssistIndicator.getRotation() + 90.f) * 3.14159265f / 180.f);
-        m_ball->velocity.x = -std::cos((m_paddle->aimAssistIndicator.getRotation() + 90.f) * 3.14159265f / 180.f);
+        m_ball->velocity.y = -std::sin((m_paddle->aimAssistIndicator.getRotation() + 90.f) * constants::pi / 180.f);
+        m_ball->velocity.x = -std::cos((m_paddle->aimAssistIndicator.getRotation() + 90.f) * constants::pi / 180.f);
     }
     else
     {
